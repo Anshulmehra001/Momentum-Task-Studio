@@ -22,6 +22,7 @@ const router = createBrowserRouter(
         { path: "goals", element: <GoalsPage /> },
         { path: "settings", element: <SettingsPage /> },
         { path: "import-export", element: <ImportExportPage /> },
+        { path: "*", element: <DashboardPage /> },
       ],
     },
   ],
