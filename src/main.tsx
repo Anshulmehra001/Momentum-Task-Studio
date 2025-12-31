@@ -10,20 +10,25 @@ import ImportExportPage from "./pages/ImportExportPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 
-const router = createBrowserRouter([
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <LayoutShell />,
+      children: [
+        { index: true, element: <DashboardPage /> },
+        { path: "projects", element: <ProjectsPage /> },
+        { path: "tasks", element: <TasksPage /> },
+        { path: "goals", element: <GoalsPage /> },
+        { path: "settings", element: <SettingsPage /> },
+        { path: "import-export", element: <ImportExportPage /> },
+      ],
+    },
+  ],
   {
-    path: "/",
-    element: <LayoutShell />,
-    children: [
-      { index: true, element: <DashboardPage /> },
-      { path: "projects", element: <ProjectsPage /> },
-      { path: "tasks", element: <TasksPage /> },
-      { path: "goals", element: <GoalsPage /> },
-      { path: "settings", element: <SettingsPage /> },
-      { path: "import-export", element: <ImportExportPage /> },
-    ],
-  },
-]);
+    basename: "/Momentum-Task-Studio",
+  }
+);
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
