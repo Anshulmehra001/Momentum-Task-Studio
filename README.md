@@ -2,6 +2,8 @@
 
 Local-first task manager with projects → goals → tasks, deadlines, and import/export.
 
+Live site: https://anshulmehra001.github.io/Momentum-Task-Studio/
+
 ## Quickstart
 
 1. Install pnpm if needed: https://pnpm.io/installation
