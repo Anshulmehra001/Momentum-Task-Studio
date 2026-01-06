@@ -1,31 +1,33 @@
-/**** Tailwind configuration for the Momentum Tasks UI ****/
 module.exports = {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
-        display: ["Space Grotesk", "ui-sans-serif", "system-ui"],
-        body: ["Manrope", "ui-sans-serif", "system-ui"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
-      colors: {
-        night: {
-          900: "#0b1021",
-          800: "#10162f",
-          700: "#141c3a",
+      animation: {
+        "fade-in": "fadeIn 0.3s ease-out forwards",
+        "slide-up": "slideUp 0.4s ease-out forwards",
+        "scale-in": "scaleIn 0.2s ease-out forwards",
+      },
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
         },
-        aurora: {
-          green: "#5ef5a3",
-          blue: "#f97316",
-          pink: "#ff7fc8",
-          amber: "#f9c46b",
+        slideUp: {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        scaleIn: {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
         },
       },
-      boxShadow: {
-        glow: "0 10px 60px rgba(94, 245, 163, 0.22)",
-        card: "0 20px 60px rgba(15, 23, 42, 0.35)",
-      },
-      backgroundImage: {
-        mesh: "radial-gradient(120% 120% at 10% 20%, rgba(94,245,163,0.08), transparent), radial-gradient(120% 120% at 80% 0%, rgba(249,115,22,0.12), transparent), radial-gradient(160% 160% at 90% 70%, rgba(255,127,200,0.08), transparent)",
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
       },
     },
   },

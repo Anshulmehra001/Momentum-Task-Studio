@@ -1,29 +1,37 @@
-import { ReactNode, useEffect } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { ListChecks, Sparkles, Upload, BookOpen, LayoutDashboard, KanbanSquare, SunMedium, Moon } from "lucide-react";
-import { Target } from "lucide-react";
+import { ReactNode, useEffect, useState } from "react";
+import { NavLink, Outlet } from "react-router-dom";
+import {
+  Home,
+  CheckSquare,
+  FolderOpen,
+  Target,
+  Moon,
+  Sun,
+  Menu,
+  X,
+} from "lucide-react";
 import { useTaskStore } from "../store/useTaskStore";
+import { ImportExport } from "./ImportExport";
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/projects", label: "Projects", icon: KanbanSquare },
-  { to: "/tasks", label: "Tasks", icon: ListChecks },
+  { to: "/", label: "Dashboard", icon: Home },
+  { to: "/projects", label: "Projects", icon: FolderOpen },
   { to: "/goals", label: "Goals", icon: Target },
-  { to: "/import-export", label: "Import / Export", icon: Upload },
-  { to: "/settings", label: "Guide", icon: BookOpen },
+  { to: "/tasks", label: "Tasks", icon: CheckSquare },
 ];
 
-const accentRing = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora-blue";
-
 export const LayoutShell = ({ children }: { children?: ReactNode }) => {
-  const location = useLocation();
   const { settings, updateSettings } = useTaskStore();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const theme = settings.theme ?? "dark";
 
   useEffect(() => {
     const root = document.documentElement;
-    root.dataset.theme = theme;
-    root.style.colorScheme = theme;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
   }, [theme]);
 
   const toggleTheme = () => {
@@ -31,79 +39,106 @@ export const LayoutShell = ({ children }: { children?: ReactNode }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--page-bg)] text-slate-50 transition-colors">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6">
-        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-aurora-green to-aurora-blue text-night-900 shadow-glow">
-              <Sparkles size={20} />
+    <div className="min-h-screen bg-white dark:bg-slate-900">
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Momentum</h1>
+        </div>
+        
+        <button
+          onClick={toggleTheme}
+          className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+        >
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 bg-black/50">
+          <div className="bg-white dark:bg-slate-800 w-72 h-full p-6">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Menu</h2>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <X size={20} />
+              </button>
             </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Momentum</div>
-              <div className="font-display text-2xl font-semibold text-white">Workspace</div>
-            </div>
+            
+            <nav className="space-y-2">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `nav-item ${isActive ? "nav-item-active" : "nav-item-inactive"}`
+                  }
+                >
+                  <item.icon size={20} />
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
           </div>
-          <div className="flex items-center gap-3">
-            <nav className="flex gap-1 rounded-2xl bg-white/5 p-1 text-sm shadow-card">
+        </div>
+      )}
+
+      <div className="lg:flex">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-gray-50 dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700">
+          <div className="flex flex-col flex-1">
+            {/* Logo */}
+            <div className="flex items-center gap-3 px-6 py-6 border-b border-gray-200 dark:border-slate-700">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <CheckSquare size={18} className="text-white" />
+              </div>
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Momentum</h1>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 px-4 py-6 space-y-1">
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-xl px-3 py-2 transition ${accentRing} ` +
-                    (isActive
-                      ? "bg-aurora-blue/20 text-white shadow-sm"
-                      : "text-slate-200 hover:bg-white/10")
+                    `nav-item ${isActive ? "nav-item-active" : "nav-item-inactive"}`
                   }
                 >
-                  <item.icon size={16} className="text-aurora-blue" />
-                  <span>{item.label}</span>
+                  <item.icon size={20} />
+                  {item.label}
                 </NavLink>
               ))}
             </nav>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-200 transition ${accentRing} bg-white/5 hover:bg-white/10 shadow-card`}
-              aria-label="Toggle theme"
-            >
-              {theme === "dark" ? <SunMedium size={16} /> : <Moon size={16} />}
-              <span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"} mode</span>
-            </button>
+
+            {/* Bottom Actions */}
+            <div className="px-4 py-4 border-t border-gray-200 dark:border-slate-700">
+              <button
+                onClick={toggleTheme}
+                className="w-full p-3 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors"
+              >
+                {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+                <span>Toggle Theme</span>
+              </button>
+            </div>
           </div>
-        </header>
-
-        <main className="space-y-6">
-          <Header location={location.pathname} />
-          {children ?? <Outlet />}
-        </main>
-      </div>
-    </div>
-  );
-};
-
-const Header = ({ location }: { location: string }) => {
-  const titles: Record<string, { title: string; subtitle: string }> = {
-    "/": { title: "Dashboard", subtitle: "Focus on the next important thing" },
-    "/tasks": { title: "Tasks", subtitle: "Durations and deadlines" },
-    "/projects": { title: "Projects", subtitle: "Goals and tasks grouped" },
-    "/goals": { title: "Goals", subtitle: "Lightweight time frames" },
-    "/settings": { title: "Guide", subtitle: "Tips for staying light" },
-    "/import-export": { title: "Import / Export", subtitle: "Backup or move devices" },
-  };
-
-  const current = titles[location] ?? titles["/"];
-
-  return (
-    <div className="glass-panel rounded-2xl p-5 shadow-card">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="section-title">{current.subtitle}</div>
-          <h1 className="font-display text-3xl font-semibold leading-tight gradient-text">{current.title}</h1>
         </div>
-        <div className="flex flex-wrap gap-2 text-sm text-slate-200">
-          <div className="glass-panel inline-flex items-center gap-2 rounded-xl px-3 py-2">Simple fields</div>
-          <div className="glass-panel inline-flex items-center gap-2 rounded-xl px-3 py-2">Save in browser</div>
+
+        {/* Main Content */}
+        <div className="lg:pl-64">
+          <main className="container-main">
+            {children ?? <Outlet />}
+          </main>
         </div>
       </div>
     </div>

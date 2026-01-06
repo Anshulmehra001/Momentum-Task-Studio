@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Calendar, Flag, Hash, Plus, GitBranch } from "lucide-react";
+import { Calendar, Flag, Hash, Plus, GitBranch, CheckCircle2, X } from "lucide-react";
 import { Goal, Project, Task, TaskPriority, TaskStatus } from "../types";
+import { useTaskStore } from "../store/useTaskStore";
 
 export type TaskComposerInput = {
   title: string;
@@ -13,24 +14,21 @@ export type TaskComposerInput = {
 };
 
 type Props = {
-  projects: Project[];
-  goals: Goal[];
-  onSubmit: (input: TaskComposerInput) => void;
-  onCancel?: () => void;
+  onClose: () => void;
   initial?: Task;
-  formId?: string;
   mode?: "create" | "edit";
 };
 
-export const TaskComposer = ({ projects, goals, onSubmit, onCancel, initial, formId, mode = "create" }: Props) => {
-  const firstProjectId = initial?.projectId ?? projects[0]?.id;
+export const TaskComposer = ({ onClose, initial, mode = "create" }: Props) => {
+  const { projects, goals, addTask, updateTask } = useTaskStore();
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<TaskComposerInput>({
     title: initial?.title ?? "",
     description: initial?.description ?? "",
     deadline: initial?.deadline ? new Date(initial.deadline).toISOString().slice(0, 16) : "",
     priority: initial?.priority ?? "medium",
     status: initial?.status ?? "planned",
-    projectId: firstProjectId,
+    projectId: initial?.projectId ?? projects[0]?.id,
     goalId: initial?.goalId,
   });
 
@@ -57,155 +55,204 @@ export const TaskComposer = ({ projects, goals, onSubmit, onCancel, initial, for
     }
   }, [projectGoals, form.goalId]);
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!form.title.trim()) return;
+    
+    setSubmitting(true);
+    
     const deadlineIso = form.deadline ? new Date(form.deadline).toISOString() : undefined;
-    onSubmit({
+    const taskData = {
       ...form,
       title: form.title.trim(),
       description: form.description?.trim(),
       deadline: deadlineIso,
-    });
-    if (mode === "create") {
-      setForm((prev) => ({ ...prev, title: "", description: "" }));
+    };
+
+    try {
+      if (mode === "edit" && initial) {
+        updateTask(initial.id, taskData);
+      } else {
+        addTask(taskData);
+      }
+      onClose();
+    } catch (error) {
+      console.error("Error saving task:", error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <form id={formId} onSubmit={handleSubmit} className="glass-panel card-border rounded-2xl p-4 shadow-card">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="section-title">{mode === "edit" ? "Edit task" : "Create task"}</div>
-          <div className="font-display text-xl font-semibold text-white">
-            {mode === "edit" ? "Update task details" : "Add the task and an optional deadline"}
+    <div className="glass-effect rounded-2xl shadow-2xl border max-h-[90vh] overflow-y-auto animate-fade-in-up">
+      <div className="sticky top-0 glass-effect border-b border-white/20 dark:border-gray-700/30 px-6 sm:px-8 py-5 sm:py-6 rounded-t-2xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+              {mode === "edit" ? "Edit Task" : "Create New Task"}
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base mt-2">
+              {mode === "edit" ? "Update task details and settings" : "Add a new task to your productivity workflow"}
+            </p>
           </div>
-        </div>
-        <div className="flex gap-2">
-          {mode === "edit" && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200"
-            >
-              Cancel
-            </button>
-          )}
           <button
-            type="submit"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-aurora-green to-aurora-blue px-4 py-2 text-sm font-semibold text-night-900 shadow-glow"
+            onClick={onClose}
+            className="p-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-300 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-700/80 hover:shadow-md transform hover:scale-105 focus-ring"
           >
-            <Plus size={16} /> {mode === "edit" ? "Save task" : "Add task"}
+            <X size={24} />
           </button>
         </div>
       </div>
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <label className="space-y-1 text-sm text-slate-300">
-          <span className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
-            <Hash size={14} /> Project
-          </span>
-          <select
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-aurora-blue"
-            value={form.projectId}
-            onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-          >
-            {projects.map((project) => (
-              <option key={project.id} value={project.id} className="bg-night-800 text-night-900">
-                {project.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="space-y-1 text-sm text-slate-300">
-          <span className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
-            <GitBranch size={14} /> Goal (optional)
-          </span>
-          <select
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-aurora-blue"
-            value={form.goalId || ""}
-            onChange={(e) => setForm({ ...form, goalId: e.target.value || undefined })}
-          >
-            <option value="" className="bg-night-800 text-night-900">
-              No goal
-            </option>
-            {projectGoals.map((goal) => (
-              <option key={goal.id} value={goal.id} className="bg-night-800 text-night-900">
-                {goal.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="space-y-1 text-sm text-slate-300">
-          <span className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
-            Title
-          </span>
+
+      <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 sm:space-y-8">
+        {/* Title */}
+        <div>
+          <label className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            Task Title *
+          </label>
           <input
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-aurora-green"
+            type="text"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            placeholder="Timebox a clear outcome"
+            placeholder="What needs to be accomplished?"
+            className="input focus-ring"
             required
+            autoFocus
           />
-        </label>
-        <label className="space-y-1 text-sm text-slate-300">
-          <span className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
-            <Calendar size={14} /> Deadline
-          </span>
-          <input
-            type="datetime-local"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-aurora-green"
-            value={form.deadline}
-            onChange={(e) => setForm({ ...form, deadline: e.target.value })}
-          />
-        </label>
-        <label className="space-y-1 text-sm text-slate-300">
-          <span className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
-            <Flag size={14} /> Priority
-          </span>
-          <select
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-aurora-green"
-            value={form.priority}
-            onChange={(e) => setForm({ ...form, priority: e.target.value as TaskPriority })}
-          >
-            <option className="bg-night-800 text-night-900" value="high">
-              High
-            </option>
-            <option className="bg-night-800 text-night-900" value="medium">
-              Medium
-            </option>
-            <option className="bg-night-800 text-night-900" value="low">
-              Low
-            </option>
-          </select>
-        </label>
-        <label className="space-y-1 text-sm text-slate-300">
-          <span className="text-xs uppercase tracking-wide text-slate-400">Status</span>
-          <select
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-aurora-green"
-            value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value as TaskStatus })}
-          >
-            <option className="bg-night-800 text-night-900" value="planned">
-              Planned
-            </option>
-            <option className="bg-night-800 text-night-900" value="in-progress">
-              In progress
-            </option>
-            <option className="bg-night-800 text-night-900" value="completed">
-              Completed
-            </option>
-          </select>
-        </label>
-        <label className="md:col-span-2 space-y-1 text-sm text-slate-300">
-          <span className="text-xs uppercase tracking-wide text-slate-400">Description</span>
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            Description
+          </label>
           <textarea
-            className="min-h-[80px] w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-aurora-green"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="What needs to happen for this to be done?"
+            placeholder="Add detailed information about this task..."
+            className="input min-h-[100px] focus-ring"
+            rows={4}
           />
-        </label>
-      </div>
-    </form>
+        </div>
+
+        {/* Priority and Status */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              Priority Level
+            </label>
+            <select
+              value={form.priority}
+              onChange={(e) => setForm({ ...form, priority: e.target.value as TaskPriority })}
+              className="input focus-ring"
+            >
+              <option value="low">🟢 Low Priority</option>
+              <option value="medium">🟡 Medium Priority</option>
+              <option value="high">🔴 High Priority</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              Current Status
+            </label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value as TaskStatus })}
+              className="input focus-ring"
+            >
+              <option value="planned">📋 Planned</option>
+              <option value="in-progress">⚡ In Progress</option>
+              <option value="completed">✅ Completed</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Deadline */}
+        <div>
+          <label className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            Deadline (Optional)
+          </label>
+          <input
+            type="datetime-local"
+            value={form.deadline}
+            onChange={(e) => setForm({ ...form, deadline: e.target.value })}
+            className="input focus-ring"
+          />
+        </div>
+
+        {/* Project and Goal */}
+        {projects.length > 0 && (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Project Assignment
+              </label>
+              <select
+                value={form.projectId ?? ""}
+                onChange={(e) => setForm({ ...form, projectId: e.target.value || undefined })}
+                className="input focus-ring"
+              >
+                <option value="">📁 No Project</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    📂 {project.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {projectGoals.length > 0 && (
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  Goal Connection
+                </label>
+                <select
+                  value={form.goalId || ""}
+                  onChange={(e) => setForm({ ...form, goalId: e.target.value || undefined })}
+                  className="input focus-ring"
+                >
+                  <option value="">🎯 No Goal</option>
+                  {projectGoals.map((goal) => (
+                    <option key={goal.id} value={goal.id}>
+                      🎯 {goal.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-4 pt-6 border-t border-gray-200/60 dark:border-gray-700/60">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-secondary w-full sm:w-auto focus-ring"
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="btn btn-primary w-full sm:w-auto focus-ring"
+            disabled={submitting || !form.title.trim()}
+          >
+            {submitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={20} />
+                {mode === "edit" ? "Update Task" : "Create Task"}
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };

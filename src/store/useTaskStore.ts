@@ -11,6 +11,7 @@ import type {
   Task,
   TaskPriority,
   TaskStatus,
+  ProjectDuration,
 } from "../types";
 
 type TaskInput = {
@@ -27,19 +28,23 @@ type GoalInput = {
   title: string;
   description?: string;
   targetDate?: string;
-  durationText?: string;
+  status?: TaskStatus;
   projectId?: string;
 };
 
 type ProjectInput = {
   title: string;
   description?: string;
-  deadline?: string;
+  startDate?: string;
+  endDate?: string;
+  duration: ProjectDuration;
+  customDuration?: string;
   status?: ProjectStatus;
   priority?: TaskPriority;
+  color?: string;
 };
 
-type Stats = {
+export type Stats = {
   totals: { projects: number; goals: number; tasks: number };
   completionRate: number;
   remaining: number;
@@ -75,92 +80,8 @@ const nowIso = () => new Date().toISOString();
 const defaultSettings: Settings = {
   showMotivation: true,
   theme: "dark",
+  defaultProjectDuration: "1-month",
 };
-
-const seedProjects: Project[] = [
-  {
-    id: nanoid(10),
-    title: "Pulseflow OS",
-    description: "Animated productivity stack for teams.",
-    deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 21).toISOString(),
-    status: "in-progress",
-    priority: "high",
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-  {
-    id: nanoid(10),
-    title: "Atlas Research",
-    description: "Insight library and validation sprints.",
-    deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 45).toISOString(),
-    status: "planned",
-    priority: "medium",
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-];
-
-const seedGoals: Goal[] = [
-  {
-    id: nanoid(10),
-    projectId: seedProjects[0].id,
-    title: "Ship animated dashboard",
-    description: "Progress rings, filters, and upcoming feed.",
-    targetDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10).toISOString(),
-    durationText: "This month",
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-  {
-    id: nanoid(10),
-    projectId: seedProjects[1].id,
-    title: "Validation sprint",
-    description: "Test assumptions and refine rollouts.",
-    targetDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 18).toISOString(),
-    durationText: "This quarter",
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-];
-
-const seedTasks: Task[] = [
-  {
-    id: nanoid(10),
-    projectId: seedProjects[0].id,
-    goalId: seedGoals[0].id,
-    title: "Progress rings",
-    description: "Animate KPI stack and bind to state.",
-    deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 4).toISOString(),
-    status: "in-progress",
-    priority: "high",
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-  {
-    id: nanoid(10),
-    projectId: seedProjects[0].id,
-    goalId: seedGoals[0].id,
-    title: "Timeline grid",
-    description: "Weekly view with density bars.",
-    deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
-    status: "planned",
-    priority: "medium",
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-  {
-    id: nanoid(10),
-    projectId: seedProjects[1].id,
-    goalId: seedGoals[1].id,
-    title: "Stakeholder map",
-    description: "Plot influence vs impact and draft invites.",
-    deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 6).toISOString(),
-    status: "planned",
-    priority: "high",
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-];
 
 const clampStatus = (status?: string): TaskStatus => {
   if (status === "completed" || status === "in-progress" || status === "planned") return status;
@@ -173,7 +94,18 @@ const clampPriority = (priority?: string): TaskPriority => {
   return "medium";
 };
 
-const sanitizeTasks = (tasks: Partial<Task>[] | undefined, fallbackProject?: string): Task[] => {
+const clampProjectStatus = (status?: string): ProjectStatus => {
+  if (status === "completed" || status === "in-progress" || status === "planned") return status;
+  return "planned";
+};
+
+const clampProjectDuration = (duration?: string): ProjectDuration => {
+  const validDurations: ProjectDuration[] = ["1-week", "2-weeks", "1-month", "2-months", "3-months", "6-months", "1-year", "custom"];
+  if (validDurations.includes(duration as ProjectDuration)) return duration as ProjectDuration;
+  return "1-month";
+};
+
+const sanitizeTasks = (tasks: Partial<Task>[] | undefined): Task[] => {
   if (!tasks) return [];
   return tasks.map((task) => ({
     id: task.id || nanoid(10),
@@ -181,7 +113,7 @@ const sanitizeTasks = (tasks: Partial<Task>[] | undefined, fallbackProject?: str
     description: task.description?.trim(),
     deadline: task.deadline,
     goalId: task.goalId,
-    projectId: task.projectId || fallbackProject,
+    projectId: task.projectId,
     status: clampStatus(task.status),
     priority: clampPriority(task.priority),
     createdAt: task.createdAt || nowIso(),
@@ -190,15 +122,15 @@ const sanitizeTasks = (tasks: Partial<Task>[] | undefined, fallbackProject?: str
   }));
 };
 
-const sanitizeGoals = (goals: Partial<Goal>[] | undefined, fallbackProject?: string): Goal[] => {
+const sanitizeGoals = (goals: Partial<Goal>[] | undefined): Goal[] => {
   if (!goals) return [];
   return goals.map((goal) => ({
     id: goal.id || nanoid(10),
-    projectId: goal.projectId || fallbackProject,
+    projectId: goal.projectId,
     title: (goal.title || "New Goal").trim(),
     description: goal.description?.trim(),
     targetDate: goal.targetDate,
-    durationText: goal.durationText?.trim() || "This month",
+    status: clampStatus(goal.status),
     createdAt: goal.createdAt || nowIso(),
     updatedAt: goal.updatedAt || nowIso(),
     completedAt: goal.completedAt,
@@ -211,22 +143,23 @@ const sanitizeProjects = (projects: Partial<Project>[] | undefined): Project[] =
     id: project.id || nanoid(10),
     title: (project.title || "New Project").trim(),
     description: project.description?.trim(),
-    deadline: project.deadline,
-    status: ((): ProjectStatus => {
-      if (project.status === "in-progress" || project.status === "completed" || project.status === "planned") return project.status;
-      return "planned";
-    })(),
+    startDate: project.startDate,
+    endDate: project.endDate,
+    duration: clampProjectDuration(project.duration),
+    customDuration: project.customDuration?.trim(),
+    status: clampProjectStatus(project.status),
     priority: clampPriority(project.priority),
+    color: project.color || "#3B82F6",
     createdAt: project.createdAt || nowIso(),
     updatedAt: project.updatedAt || nowIso(),
-    completedAt: project.completedAt && project.status === "completed" ? project.completedAt : undefined,
+    completedAt: project.completedAt && clampProjectStatus(project.status) === "completed" ? project.completedAt : undefined,
   }));
 };
 
 const storeCreator: StateCreator<TaskStore> = (set, get) => ({
-  projects: seedProjects,
-  tasks: seedTasks,
-  goals: seedGoals,
+  projects: [],
+  tasks: [],
+  goals: [],
   settings: defaultSettings,
 
   addProject: (input: ProjectInput) => {
@@ -235,12 +168,16 @@ const storeCreator: StateCreator<TaskStore> = (set, get) => ({
       id: nanoid(10),
       title: input.title.trim() || "New Project",
       description: input.description?.trim(),
-      deadline: input.deadline,
-      status: input.status ? clampStatus(input.status) : "planned",
+      startDate: input.startDate,
+      endDate: input.endDate,
+      duration: input.duration,
+      customDuration: input.customDuration?.trim(),
+      status: input.status ? clampProjectStatus(input.status) : "planned",
       priority: input.priority ?? "medium",
+      color: input.color || "#3B82F6",
       createdAt: timestamp,
       updatedAt: timestamp,
-      completedAt: (input.status ? clampStatus(input.status) : "planned") === "completed" ? timestamp : undefined,
+      completedAt: (input.status ? clampProjectStatus(input.status) : "planned") === "completed" ? timestamp : undefined,
     };
     set((state) => ({ projects: [project, ...state.projects] }));
   },
@@ -254,10 +191,12 @@ const storeCreator: StateCreator<TaskStore> = (set, get) => ({
               ...updates,
               title: updates.title?.trim() ?? project.title,
               description: updates.description?.trim() ?? project.description,
+              customDuration: updates.customDuration?.trim() ?? project.customDuration,
               priority: updates.priority ? clampPriority(updates.priority) : project.priority,
-              status: updates.status ?? project.status,
+              status: updates.status ? clampProjectStatus(updates.status) : project.status,
+              duration: updates.duration ? clampProjectDuration(updates.duration) : project.duration,
               completedAt:
-                (updates.status ?? project.status) === "completed"
+                (updates.status ? clampProjectStatus(updates.status) : project.status) === "completed"
                   ? project.completedAt || nowIso()
                   : undefined,
               updatedAt: nowIso(),
@@ -283,9 +222,10 @@ const storeCreator: StateCreator<TaskStore> = (set, get) => ({
       title: input.title.trim() || "New Goal",
       description: input.description?.trim(),
       targetDate: input.targetDate,
-      durationText: input.durationText?.trim() || "This month",
+      status: input.status ? clampStatus(input.status) : "planned",
       createdAt: timestamp,
       updatedAt: timestamp,
+      completedAt: (input.status ? clampStatus(input.status) : "planned") === "completed" ? timestamp : undefined,
     };
     set((state) => ({ goals: [goal, ...state.goals] }));
   },
@@ -299,6 +239,11 @@ const storeCreator: StateCreator<TaskStore> = (set, get) => ({
               ...updates,
               title: updates.title?.trim() ?? goal.title,
               description: updates.description?.trim() ?? goal.description,
+              status: updates.status ? clampStatus(updates.status) : goal.status,
+              completedAt:
+                (updates.status ? clampStatus(updates.status) : goal.status) === "completed"
+                  ? goal.completedAt || nowIso()
+                  : undefined,
               updatedAt: nowIso(),
             }
           : goal
@@ -359,10 +304,9 @@ const storeCreator: StateCreator<TaskStore> = (set, get) => ({
 
   importData: (payload: ImportExportPayload) => {
     if (!payload) return;
-    const projects = sanitizeProjects(payload.projects) || seedProjects;
-    const fallbackProject = projects[0]?.id;
-    const goals = sanitizeGoals(payload.goals, fallbackProject);
-    const tasks = sanitizeTasks(payload.tasks, fallbackProject);
+    const projects = sanitizeProjects(payload.projects);
+    const goals = sanitizeGoals(payload.goals);
+    const tasks = sanitizeTasks(payload.tasks);
     set({
       projects,
       goals,
@@ -383,7 +327,7 @@ const storeCreator: StateCreator<TaskStore> = (set, get) => ({
   },
 
   stats: () => {
-    const { projects, tasks } = get();
+    const { projects, tasks, goals } = get();
     const now = new Date();
     const totalTasks = tasks.length;
     const completed = tasks.filter((t) => t.status === "completed");
@@ -400,7 +344,7 @@ const storeCreator: StateCreator<TaskStore> = (set, get) => ({
       .sort((a, b) => (a.deadline && b.deadline ? a.deadline.localeCompare(b.deadline) : 0))
       .slice(0, 6);
 
-    const overdue = tasks.filter((t) => t.deadline && isBefore(parseISO(t.deadline), now));
+    const overdue = tasks.filter((t) => t.deadline && isBefore(parseISO(t.deadline), now) && t.status !== "completed");
     const highPriority = tasks.filter((t) => t.priority === "high" && t.status !== "completed");
 
     const projectsProgress = projects.map((project) => {
@@ -415,7 +359,7 @@ const storeCreator: StateCreator<TaskStore> = (set, get) => ({
     });
 
     return {
-      totals: { projects: projects.length, goals: get().goals.length, tasks: totalTasks },
+      totals: { projects: projects.length, goals: goals.length, tasks: totalTasks },
       completionRate: totalTasks === 0 ? 0 : Math.round((completed.length / totalTasks) * 100),
       remaining,
       completed: completed.length,
@@ -430,71 +374,24 @@ const storeCreator: StateCreator<TaskStore> = (set, get) => ({
 export const useTaskStore = create<TaskStore>()(
   persist(storeCreator, {
     name: "momentum-task-store",
-    version: 5,
+    version: 8,
     migrate: (state: any, version) => {
       if (!state) return state;
-      // migrate from v1 shape without projects/priorities
-      if (version < 2) {
-        const projects = state.projects ?? seedProjects;
-        const fallbackProject = projects[0]?.id;
-        return {
-          ...state,
-          projects,
-          goals: sanitizeGoals(state.goals, fallbackProject),
-          tasks: sanitizeTasks(state.tasks, fallbackProject),
-          settings: { ...defaultSettings, ...(state.settings ?? {}) },
-        };
-      }
-      if (version < 3) {
+      
+      // Fresh migration for new simplified structure
+      if (version < 8) {
         const projects = sanitizeProjects(state.projects);
-        const fallbackProject = projects[0]?.id;
-        const goals = sanitizeGoals(state.goals, fallbackProject);
-        const tasks = sanitizeTasks(state.tasks, fallbackProject).map((task) => {
-          if (task.status === "completed" && !task.completedAt) {
-            return { ...task, completedAt: task.updatedAt || nowIso() };
-          }
-          return task;
-        });
+        const goals = sanitizeGoals(state.goals);
+        const tasks = sanitizeTasks(state.tasks);
+        
         return {
-          ...state,
           projects,
           goals,
           tasks,
           settings: { ...defaultSettings, ...(state.settings ?? {}) },
-        };
+        } as TaskStore;
       }
-      if (version < 4) {
-        const projects = sanitizeProjects(state.projects);
-        const fallbackProject = projects[0]?.id;
-        const goals = sanitizeGoals(state.goals, fallbackProject);
-        const tasks = sanitizeTasks(state.tasks, fallbackProject);
-        return {
-          ...state,
-          projects,
-          goals,
-          tasks,
-          settings: { ...defaultSettings, ...(state.settings ?? {}) },
-        };
-      }
-      if (version < 5) {
-        const projects = sanitizeProjects(state.projects).map((p: any) => {
-          const { durationWeeks, durationText, ...rest } = p || {};
-          return rest;
-        });
-        const fallbackProject = projects[0]?.id;
-        const goals = sanitizeGoals(state.goals, fallbackProject);
-        const tasks = sanitizeTasks(state.tasks, fallbackProject).map((t: any) => {
-          const { durationWeeks, durationText, ...rest } = t || {};
-          return rest;
-        });
-        return {
-          ...state,
-          projects,
-          goals,
-          tasks,
-          settings: { ...defaultSettings, ...(state.settings ?? {}) },
-        };
-      }
+      
       return state as TaskStore;
     },
   })
