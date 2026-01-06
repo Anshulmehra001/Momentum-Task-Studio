@@ -2,6 +2,10 @@
 
 A modern, intuitive task management application with a clean design and powerful features.
 
+[![Live Demo](https://img.shields.io/badge/demo-live-success)](https://anshulmehra001.github.io/Momentum-Task-Studio/)
+[![GitHub](https://img.shields.io/badge/github-repository-blue)](https://github.com/Anshulmehra001/Momentum-Task-Studio)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 ## Features
 
 ✨ **Modern UI/UX**
@@ -34,6 +38,12 @@ A modern, intuitive task management application with a clean design and powerful
 - Data persistence across sessions
 - Backup and restore capabilities
 
+## 🚀 Live Demo
+
+Try the app now: **[https://anshulmehra001.github.io/Momentum-Task-Studio/](https://anshulmehra001.github.io/Momentum-Task-Studio/)**
+
+No installation required - start managing your tasks immediately!
+
 ## Quick Start
 
 ### Prerequisites
@@ -44,22 +54,22 @@ A modern, intuitive task management application with a clean design and powerful
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd momentum-task-studio
+   git clone https://github.com/Anshulmehra001/Momentum-Task-Studio.git
+   cd Momentum-Task-Studio
    ```
 
 2. **Install dependencies**
    ```bash
-   npm install
+   pnpm install
    # or
-   yarn install
+   npm install
    ```
 
 3. **Start development server**
    ```bash
-   npm run dev
+   pnpm dev
    # or
-   yarn dev
+   npm run dev
    ```
 
 4. **Open in browser**
@@ -68,9 +78,9 @@ A modern, intuitive task management application with a clean design and powerful
 ### Build for Production
 
 ```bash
-npm run build
+pnpm build
 # or
-yarn build
+npm run build
 ```
 
 The built files will be in the `dist/` directory.
@@ -164,11 +174,17 @@ The app supports both dark and light themes. Toggle using the theme button in th
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## Links
+
+- **Live Demo**: [https://anshulmehra001.github.io/Momentum-Task-Studio/](https://anshulmehra001.github.io/Momentum-Task-Studio/)
+- **Repository**: [https://github.com/Anshulmehra001/Momentum-Task-Studio](https://github.com/Anshulmehra001/Momentum-Task-Studio)
+- **Issues**: [https://github.com/Anshulmehra001/Momentum-Task-Studio/issues](https://github.com/Anshulmehra001/Momentum-Task-Studio/issues)
+
 ## Support
 
 If you encounter any issues or have questions:
-1. Check the existing issues on GitHub
-2. Create a new issue with detailed information
+1. Check the [existing issues](https://github.com/Anshulmehra001/Momentum-Task-Studio/issues) on GitHub
+2. Create a [new issue](https://github.com/Anshulmehra001/Momentum-Task-Studio/issues/new) with detailed information
 3. Include steps to reproduce any bugs
 
 ---
